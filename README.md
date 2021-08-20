@@ -1,5 +1,5 @@
 # Hermes
-Audit logs service [Audit logs in a box from Boxy]
+Audit logs service [Audit logs in a box from BoxyHQ]
 
 A grade 36 Bureaucrat just like Hermes Conrad. Audit logs matters that only a true bureaucrat can handle properly.
 
