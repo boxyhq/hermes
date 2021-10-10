@@ -3,6 +3,9 @@ Audit logs service [Audit logs in a box from BoxyHQ]
 
 A grade 36 Bureaucrat just like Hermes Conrad. Audit logs matters that only a true bureaucrat can handle properly.
 
+# Source code visualizer
+[CodeSee codebase visualizer](https://app.codesee.io/maps/public/a248cc70-23b7-11ec-a724-79d7dd589517)
+
 # Run
 ** This project is still in beta, please get in touch if you'd like to use it in production. There are more backends being supported **
 
