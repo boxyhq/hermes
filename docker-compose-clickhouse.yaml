@@ -1,0 +1,29 @@
+version: "3"
+
+networks:
+  hermes_ch:
+
+services:
+  hermes:
+    build: ./
+    ports:
+      - "8080:8080"
+    environment:
+      - BACKEND=clickhouse
+      - CLICKHOUSE_ENDPOINT=clickhouse:9000
+      - CLICKHOUSE_DATABASE=hermes
+      - CLICKHOUSE_TABLE=auditlogs
+      - CLICKHOUSE_USERNAME=default
+      - CLICKHOUSE_AUTH_DATABASE=default    
+    networks:
+      - hermes_ch
+  clickhouse:
+    image: yandex/clickhouse-server
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - ./clickhouse_config/_db:/var/lib/clickhouse
+      - ./clickhouse_config/config.xml:/etc/clickhouse-server/config.xml
+    networks:
+      - hermes_ch

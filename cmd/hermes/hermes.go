@@ -9,6 +9,7 @@ import (
 
 	"github.com/boxyhq/hermes/auth"
 	"github.com/boxyhq/hermes/db"
+	"github.com/boxyhq/hermes/db/clickhouse"
 	"github.com/boxyhq/hermes/db/loki"
 	"github.com/boxyhq/hermes/types"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ type configuration struct {
 	backend    string
 	apiBackend string
 	loki       loki.Config
+	clickhouse clickhouse.Config
 }
 
 func parseArgs(args []string) configuration {
@@ -35,11 +37,21 @@ func parseArgs(args []string) configuration {
 	app.Flag("loki-query-endpoint", "endpoint to query Loki logs").
 		Envar("LOKI_QUERY_ENDPOINT").Default("http://localhost:3100").StringVar(&cfg.loki.QueryEndpoint)
 
+	app.Flag("clickhouse-endpoint", "endpoint to query Loki logs").
+		Envar("CLICKHOUSE_ENDPOINT").Default("http://localhost:9000").StringVar(&cfg.clickhouse.Addr)
+	app.Flag("clickhouse-database", "endpoint to query Loki logs").
+		Envar("CLICKHOUSE_DATABASE").Default("hermes").StringVar(&cfg.clickhouse.Database)
+	app.Flag("clickhouse-table", "endpoint to query Loki logs").
+		Envar("CLICKHOUSE_TABLE").Default("auditlogs").StringVar(&cfg.clickhouse.Table)
+	app.Flag("clickhouse-username", "endpoint to query Loki logs").
+		Envar("CLICKHOUSE_USERNAME").Default("default").StringVar(&cfg.clickhouse.Username)
+	app.Flag("clickhouse-auth-database", "endpoint to query Loki logs").
+		Envar("CLICKHOUSE_AUTH_DATABASE").Default("default").StringVar(&cfg.clickhouse.Auth_database)
+
 	app.Flag("api-backend", "backend to use to validate API keys").
 		Envar("API_BACKEND").Default("demo").StringVar(&cfg.apiBackend)
 
 	kingpin.MustParse(app.Parse(args[1:]))
-
 	return cfg
 }
 
@@ -58,6 +70,13 @@ func main() {
 	switch cfg.backend {
 	case "loki":
 		hdb, err = loki.New(cfg.loki)
+		if err != nil {
+			log.Error("Error initialising db:", zap.Error(err))
+		}
+
+		break
+	case "clickhouse":
+		hdb, err = clickhouse.New(cfg.clickhouse)
 		if err != nil {
 			log.Error("Error initialising db:", zap.Error(err))
 		}
