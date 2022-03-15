@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -12,6 +13,9 @@ import (
 	clickhousedb "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/boxyhq/hermes/db"
 	"github.com/boxyhq/hermes/types"
+
+	"github.com/boxyhq/hermes/db/clickhouse/insert"
+	"go.temporal.io/sdk/client"
 )
 
 var ErrNoEvents = errors.New("no events")
@@ -47,25 +51,42 @@ func (l clickhouse) Ingest(tenantID string, logs []types.AuditLog) error {
 	if len(logs) <= 0 {
 		return ErrNoEvents
 	}
+	log.Println("Got ", len(logs), "rows")
+	c, err := client.NewClient(client.Options{})
+	if err != nil {
+		log.Fatalln("Unable to create client", err)
+	}
+	defer c.Close()
+
+	workflowOptions := client.StartWorkflowOptions{
+		ID:        "insert_clickhouse_workflow",
+		TaskQueue: "insert-clickhouse",
+	}
 
 	for _, al := range logs {
 		fmt.Print(al)
 		now := time.Now().UnixNano()
-		query := fmt.Sprintf(`INSERT INTO %s.%s (tenantId, timestamp, actor, actor_type, group,
-			where, where_type, when, target, target_id, action, action_type, name, description) VALUES
-			(%d, %d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')`, l.cfg.Database, l.cfg.Table,
-			1, now,
-			al.Where, al.WhereType, al.When, al.Target, al.TargetID, al.Action, al.ActionType, al.Name, al.Description,
-			al.Actor, al.ActorType, al.Group,
-		)
-		if errInsert := l.client.AsyncInsert(context.TODO(), query, false); errInsert != nil {
-			fmt.Print("Failed to save document", map[string]interface{}{
-				"query": query,
-				"error": errInsert,
-			})
+		query := fmt.Sprintf(`INSERT INTO %s.%s (tenantId, timestamp, actor, actor_type, group, where, where_type, when, target, target_id, action, action_type, name, description) VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')`, l.cfg.Database, l.cfg.Table, 1, now, al.Where, al.WhereType, al.When, al.Target, al.TargetID, al.Action, al.ActionType, al.Name, al.Description, al.Actor, al.ActorType, al.Group)
 
-			return errInsert
+		we, err := c.ExecuteWorkflow(context.Background(), workflowOptions, insert.Workflow, query)
+		if err != nil {
+			log.Fatalln("Unable to execute workflow", err)
 		}
+
+		log.Println("Started workflow")
+		log.Println("WorkflowID", we.GetID())
+		log.Println("RunID", we.GetRunID())
+
+		// To Inset in clickhouse
+
+		// if errInsert := l.client.AsyncInsert(context.TODO(), query, false); errInsert != nil {
+		// 	fmt.Print("Failed to save document", map[string]interface{}{
+		// 		"query": query,
+		// 		"error": errInsert,
+		// 	})
+
+		// 	return errInsert
+		// }
 	}
 
 	return nil
