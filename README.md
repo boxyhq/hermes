@@ -1,3 +1,5 @@
+_**Deprecated**_: We are working on a new Audit Logs project that will replace this proof-of-concept. Stay tuned for more details.
+
 # Hermes
 Audit logs service [Audit logs in a box from BoxyHQ]
 
